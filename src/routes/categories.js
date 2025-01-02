@@ -41,26 +41,25 @@ router.post("/", async (req, res) => {
 
 router.put("/", async (req, res) => {
   const body = req.body;
-  try{
-    console.log(body)
-    const newData = await Categories.findOneAndUpdate(
-      {_id: body._id},
-      {
-        is_active: body.is_active
+  try {
 
-      },
-      { new: true }
-    )
+    if (!body._id) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST, i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
 
-    console.log(newData);
-    
-    res.send("test");
+    let updates = {};
 
+    if (body.name) updates.name = body.name;
+    if (typeof body.is_active === "boolean") updates.is_active = body.is_active;
 
+    await Categories.updateOne({ _id: body._id }, updates);
 
-  }catch(err){
-    res.send(err)
-  }
+    AuditLogs.info(req.user?.email, "Categories", "Update", { _id: body._id, ...updates });
+
+    res.json(Response.successResponse({ success: true }));
+
+} catch (err) {
+    let errorResponse = Response.errorResponse(err);
+    res.status(errorResponse.code).json(errorResponse);
+}
 });
 
 module.exports = router;
